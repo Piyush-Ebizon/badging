@@ -1,0 +1,53 @@
+name = Openbadging Issuer
+description = This module create a entity type for badge issuer.
+core = 7.x
+package = openbadging
+php = 5.2.4
+version = 7.x-1.0
+project = openbadging_issuer
+dependencies[] = openbadging
+dependencies[] = entity
+dependencies[] = features
+dependencies[] = link
+dependencies[] = options
+dependencies[] = taxonomy
+features[achievement_types][] = issuer_information
+features[features_api][] = api:1
+features[field][] = openbadging-issuer_information-field_badge_entity_program
+features[field][] = openbadging-issuer_information-field_issuer_contact
+features[field][] = openbadging-issuer_information-field_issuer_org
+features[field][] = openbadging-issuer_information-field_issuer_origin
+features[user_permission][] = create issuer_information achievement
+features[user_permission][] = delete any issuer_information achievement
+features[user_permission][] = delete own issuer_information achievement
+features[user_permission][] = edit any issuer_information achievement
+features[user_permission][] = edit own issuer_information achievement
+features[user_permission][] = view issuer_information achievement
+
+; Information added by drupal.org packaging script on 2013-01-08
+version = "7.x-1.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357654733"
+
+
+; Information added by drupal.org packaging script on 2013-01-10
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357827185"
+
+
+; Information added by drupal.org packaging script on 2013-01-30
+version = "7.x-2.x-dev"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1359552583"
+
+
+; Information added by drupal.org packaging script on 2013-03-04
+version = "7.x-3.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1362413418"
+

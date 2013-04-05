@@ -1,0 +1,180 @@
+<?php
+/**
+ * @file
+ * Module for connecting open badges achievements to Mozilla Open Badges Backpack.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function openbadging_amobb_menu() {
+  $items['openbadging_amobb/assertions/%/%'] = array(
+    'title' => 'Assertions',
+    'page callback' => 'achievement_amobb_assertions',
+    'page arguments' => array(2, 3),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Return json assertions for achievements.
+ *
+ * @param string $achievement_url
+ *   A specific achievement title to check the unlock status of.
+ * @param int $uid
+ *   The user this request applies against (defaults to current user).
+ *
+ * @return array
+ *   One of the following, based on the passed parameters:
+ *   - If the $uid has not unlocked $achievement_id, return empty badge.
+ *   - If $achievement_url is unlocked, return the formatted badge assertion.
+ */
+function achievement_amobb_assertions($achievement_url, $uid) {
+  // Load the user from $uid.
+  $user = user_load($uid);
+  // Convert $achievement_url to a normal achievement title.
+  $achievement_name = urldecode($achievement_url);
+  // Load all unlocked achievements for the user.
+  $unlocks = achievements_unlocked_already(NULL, $uid);
+  // Load all achievements.
+  $achievements = achievements_load(NULL, FALSE);
+  // Cycle through all achievements and find the one that matches the url if
+  // it is unlocked.
+  foreach ($achievements as $key => $achievement) {
+    if (isset($unlocks[$key]) && $achievement['title'] == $achievement_name) {
+      global $base_root;
+      // It appears that the Open Badges api isn't set yet on required values,
+      // but here's what we have for now.
+      $salt = 'mybadge!';
+      $hash = 'sha256$' . hash('sha256', $user->mail . $salt);
+      // Use the correct image file, depending on what is set.
+      if (isset($achievement['images']['badge'])) {
+        // Use the larger badge image if supplied.
+        $image = $achievement['images']['badge'];
+      }
+      elseif (isset($achievement['images']['unlocked'])) {
+        // Otherwise use the unlock image.
+        //$image = $achievement['images']['unlocked'];
+        $image_path = explode('default/files', $achievement['images']['unlocked']);
+		    $image = $image_path[0] . 'default/files/styles/200_200/public' . $image_path[1];        
+      }
+      else {
+        // Use default image.
+        $image = variable_get('achievements_image_unlocked', '');
+        if (substr($image,-4,4) != '.png') {
+          // No valid image was found.
+          watchdog('amobb', t('No valid image was found'), array(), WATCHDOG_INFO);
+          break;
+        }
+      }
+      $evidence_badge = get_issuer_info_send_mozila($key ,'evidence');
+      // Build the assertion.
+      $assertion = array(
+          'recipient' => $hash,
+          'salt' => $salt,
+          'evidence' => $evidence_badge,
+          'badge' => array(
+          'version' => '0.5.0',
+          'name' => $achievement['title'],
+          'description' => $achievement['description'],
+          'criteria' => url('achievement/' . $key, array('absolute' => TRUE)),
+          'image' => url($image, array('absolute' => TRUE)),
+          'issuer' => array(          
+          'origin' => get_issuer_info_send_mozila($key ,'origin'),
+          'name' => get_issuer_info_send_mozila($key ,'name'),
+          'org' => get_issuer_info_send_mozila($key ,'org'),
+          'contact' => get_issuer_info_send_mozila($key ,'contact'),
+          ),
+        ),
+      );
+      // Return the assertion as JSON.
+      drupal_json_output($assertion);
+      return;
+    }
+  }
+  // If the user doesn't have the badge or the badge doesn't exist, return
+  // empty array.
+  $assertion = array(
+    'badge' => array(
+    'name' => 'No badge',
+    ),
+  );
+  drupal_json_output($assertion);
+}
+
+/**
+ * Implements hook_page_build().
+ * Add all our necessary javascript settings and files.
+ */
+function openbadging_amobb_page_build(&$page) {
+  $account = menu_get_object('user', 1);
+  global $user;
+    // Add all our necessary javascript settings and files.
+    drupal_add_js('https://beta.openbadges.org/issuer.js', 'external');
+    global $base_root;
+    drupal_add_js(array('uid' => $user->uid, 'baseRoot' => $base_root), 'setting');
+    drupal_add_js(url(drupal_get_path('module', 'openbadging_amobb')) . '/openbadging_amobb.js');
+}
+
+/**
+ * @param $badge_id id of badge that is to be send to mozilla backpack.
+ * @return issuer information of corresponding badge id.
+ */
+function get_issuer_info_send_mozila($badge_id,$case)
+{
+	$tid_array = entity_load('openbadging', $ids = array($badge_id));
+	
+	$tid = $tid_array[$badge_id]->field_badge_entity_program['und']['0']['tid'];
+	$badge_evidence = $tid_array[$badge_id]->field_badge_entity_evidence['und']['0']['url'];
+	
+	$issuer_id = achievement_badges_badge_issuer_information_mozilla($tid);
+	
+	$issuer_array = entity_load('openbadging', $ids = array($issuer_id));
+	
+	$issuer_origin = isset($issuer_array[$issuer_id]->field_issuer_origin['und']['0']['url']) ? $issuer_array[$issuer_id]->field_issuer_origin['und']['0']['url'] : '';
+	$issuer_org = isset($issuer_array[$issuer_id]->field_issuer_org['und']['0']['value']) ? $issuer_array[$issuer_id]->field_issuer_org['und']['0']['value'] : '';
+	$issuer_contact = isset($issuer_array[$issuer_id]->field_issuer_contact['und']['0']['value']) ? $issuer_array[$issuer_id]->field_issuer_contact['und']['0']['value'] : '';
+	$issuer_name = isset($issuer_array[$issuer_id]->title) ? $issuer_array[$issuer_id]->title : '';
+	
+	
+	switch ($case) {
+    case 'name':
+        return $issuer_name;
+        break;
+    
+    case 'origin':
+        return $issuer_origin;
+        break;
+    
+    case 'org':
+        return $issuer_org;
+        break;  
+    
+    case 'contact':
+        return $issuer_contact;
+        break;
+        
+    case 'evidence':
+        return $badge_evidence;
+        break;    
+   
+   }
+}
+/**
+ * Find out issuer information on the bases of tid
+ * @param type $tid
+ * @return type 
+ */
+function achievement_badges_badge_issuer_information_mozilla($tid) {
+  $issuer_id = db_select('field_data_field_badge_entity_program', 'fbp');
+  $issuer_id->condition('fbp.field_badge_entity_program_tid', $tid, '=')
+          ->fields('fbp', array('bundle', 'entity_id'));
+  $id = $issuer_id->execute()->fetchAll();
+  foreach ($id as $key => $value) {
+    if ($value->bundle == 'issuer_information') {
+      return $value->entity_id;
+    }
+  }
+}

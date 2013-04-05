@@ -1,0 +1,541 @@
+<?php
+
+/**
+ * achievement changed before this time are always marked as read.
+ *
+ * achievement changed after this time may be marked new, updated, or read, depending
+ * on their state for the current user. Defaults to 30 days ago.
+ */
+define('ACHIEVEMENT_ENTITY_NEW_LIMIT', REQUEST_TIME - 30 * 24 * 60 * 60);
+
+
+/**
+ * Code for the image_cache feature.
+ */
+include_once 'openbadging.features.inc';
+
+/**
+ * Implements hook_entity_info().
+ */
+function openbadging_entity_info() {
+    $return = array(
+        'openbadging' => array(
+            'label' => t('Achievement'),
+            'entity class' => 'AchievementEntity',
+            'controller class' => 'AchievementEntityController',
+            'base table' => 'openbadging',
+            'fieldable' => TRUE,
+            'entity keys' => array(
+                'id' => 'bid',
+                'bundle' => 'type',
+            ),
+            'bundle keys' => array(
+                'bundle' => 'type',
+            ),
+            'bundles' => array(),
+            'load hook' => 'openbadging_load',
+            'view modes' => array(
+                'full' => array(
+                    'label' => t('Default'),
+                    'custom settings' => FALSE,
+                ),
+            ),
+            'label callback' => 'entity_class_label',
+            'uri callback' => 'entity_class_uri',
+            'module' => 'openbadging',
+            'access callback' => 'openbadging_access',
+        ),
+    );
+    $return['achievement_types'] = array(
+        'label' => t('Openbadging Configuration'),
+        'entity class' => 'AchievementTypes',
+        'controller class' => 'AchievementTypesController',
+        'base table' => 'achievement_types',
+        'fieldable' => FALSE,
+        'bundle of' => 'openbadging',
+        'exportable' => TRUE,
+        'entity keys' => array(
+            'id' => 'id',
+            'name' => 'type',
+            'label' => 'label',
+        ),
+        'module' => 'openbadging',
+        // Enable the entity API's admin UI.
+        'admin ui' => array(
+            'path' => 'admin/structure/achievement',
+            'file' => 'openbadging.admin.inc',
+            'controller class' => 'AchievementTypesEntityController',
+        ),
+        'access callback' => 'achievement_types_access',
+    );
+
+    return $return;
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function openbadging_entity_info_alter(&$entity_info) {
+    if (isset($entity_info['openbadging'])) {
+        foreach (openbadging_types() as $type => $info) {
+            $entity_info['openbadging']['bundles'][$type] = array(
+                'label' => $info->label,
+                'admin' => array(
+                    'path' => 'admin/structure/achievement/manage/%achievement_types',
+                    'real path' => 'admin/structure/achievement/manage/' . $type,
+                    'bundle argument' => 4,
+                    'access arguments' => array('administer openbadging types'),
+                ),
+            );
+        }
+    }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function openbadging_menu() {
+    $items = array();
+    $items['admin/structure/achievement/add_achievement'] = array(
+        'title' => 'Add Achievement',
+        'page callback' => 'drupal_goto',
+        'page arguments' => array('achievement/add'),
+        'access arguments' => array('access editor control panel'),
+        'weight' => 50,
+        'type' => MENU_LOCAL_TASK
+    );
+    $items['achievement/add'] = array(
+        'title' => 'Achievement',
+        'page callback' => 'openbadging_admin_add_page',
+        'access arguments' => array('administer openbadging types'),
+        'file' => 'openbadging.admin.inc',
+        'type' => MENU_LOCAL_ACTION,
+        'tab_parent' => 'achievement',
+        'tab_root' => 'achievement',
+    );
+    $items['achievement/%openbadging'] = array(
+        'title callback' => 'openbadging_title',
+        'title arguments' => array(1),
+        'page callback' => 'openbadging_view',
+        'page arguments' => array(1),
+        'access callback' => 'openbadging_access',
+        'access arguments' => array('view', 1),
+        'file' => 'openbadging.pages.inc',
+    );
+
+    $items['achievement/%openbadging/view'] = array(
+        'title' => 'View',
+        'type' => MENU_DEFAULT_LOCAL_TASK,
+        'weight' => -10,
+    );
+
+    $items['achievement/%openbadging/delete'] = array(
+        'title' => 'Delete achievement',
+        'title callback' => 'openbadging_label',
+        'title arguments' => array(1),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('openbadging_delete_form', 1),
+        'access callback' => 'openbadging_access',
+        'access arguments' => array('delete', 1),
+        'file' => 'openbadging.admin.inc',
+    );
+
+    $items['achievement/%openbadging/edit'] = array(
+        'title' => 'Edit',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('openbadging_form', 1),
+        'access callback' => 'openbadging_access',
+        'access arguments' => array('edit', 1),
+        'file' => 'openbadging.admin.inc',
+        'type' => MENU_LOCAL_TASK,
+        'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    );
+
+    foreach (openbadging_types() as $type => $info) {
+        $items['achievement/add/' . $type] = array(
+            'title' => 'Achievement',
+            'page callback' => 'openbadging_add',
+            'page arguments' => array(2),
+            'access callback' => 'openbadging_access',
+            'access arguments' => array('create', $info),
+            'file' => 'openbadging.admin.inc',
+        );
+    }
+    $items['admin/structure/achievement/content'] = array(
+        'title' => 'Content',
+        'description' => 'Find and manage achievement content.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('openbadging_admin_content'),
+        'access arguments' => array('administer openbadging types'),
+        'weight' => -10,
+        'file' => 'openbadging.admin.inc',
+        'type' => MENU_LOCAL_TASK,
+        'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+        'weight' => 1,
+    );
+    $items['admin/structure/achievement/%achievement_types/delete'] = array(
+        'title' => 'Delete',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('achievement_types_form_delete_confirm', 4),
+        'access arguments' => array('administer openbadging types'),
+        'weight' => 1,
+        'type' => MENU_NORMAL_ITEM,
+        'file' => 'openbadging.admin.inc',
+    );
+
+    return $items;
+}
+
+/**
+ * Achievement content page title
+ * @param type $achievement
+ * @return type 
+ */
+function openbadging_title($achievement) {
+    return $achievement->title;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function openbadging_permission() {
+    $permissions = array(
+        'administer openbadging types' => array(
+            'title' => t('Administer Achievement Entity Types'),
+            'description' => t('Create and delete fields for achievement types, and set their permissions.'),
+        ),
+        'administer openbadging' => array(
+            'title' => t('Administer Achievement Entity'),
+            'description' => t('Edit and delete all achievements'),
+        ),
+    );
+
+    //Generate permissions per openbadging 
+    foreach (openbadging_types() as $type) {
+        $type_name = check_plain($type->type);
+        $permissions += array(
+            "view $type_name achievement" => array(
+                'title' => t('View %type_name achievement', array('%type_name' => $type->label)),
+            ),
+            "create $type_name achievement" => array(
+                'title' => t('Create %type_name achievement', array('%type_name' => $type->label)),
+            ),
+            "edit any $type_name achievement" => array(
+                'title' => t('Edit any %type_name achievement', array('%type_name' => $type->label)),
+            ),
+            "edit own $type_name achievement" => array(
+                'title' => t('Edit own %type_name achievement', array('%type_name' => $type->label)),
+            ),
+            "delete any $type_name achievement" => array(
+                'title' => t('Delete any %type_name achievement', array('%type_name' => $type->label)),
+            ),
+            "delete own $type_name achievement" => array(
+                'title' => t('Delete own %type_name achievement', array('%type_name' => $type->label)),
+            ),
+        );
+    }
+    return $permissions;
+}
+
+/*
+ * Implementation of hook_menu_alter()
+ * @param type $callback 
+ * */
+
+/*function openbadging_menu_alter(&$callback) {
+    unset($callback['user/%user/achievements']);
+}*/
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function openbadging_entity_property_info_alter(&$info) {
+    $properties = &$info['openbadging']['properties'];
+    $properties['created'] = array(
+        'label' => t("Date created"),
+        'type' => 'date',
+        'description' => t("The date the achievement was posted."),
+        'setter callback' => 'entity_property_verbatim_set',
+        'setter permission' => 'administer openbadging',
+        'schema field' => 'created',
+    );
+    $properties['changed'] = array(
+        'label' => t("Date changed"),
+        'type' => 'date',
+        'schema field' => 'changed',
+        'description' => t("The date the achievement was most recently updated."),
+    );
+    $properties['uid'] = array(
+        'label' => t("Author"),
+        'type' => 'user',
+        'description' => t("The author of the achievement."),
+        'setter callback' => 'entity_property_verbatim_set',
+        'setter permission' => 'administer openbadging types',
+        'required' => TRUE,
+        'schema field' => 'uid',
+    );
+}
+
+/**
+ * Determines whether the given user has access to a model.
+ *
+ * @param $op
+ *   The operation being performed. One of 'view', 'update', 'create', 'delete'
+ *   or just 'edit' (being the same as 'create' or 'update').
+ * @param $model
+ *   Optionally a model or a achievement type to check access for. If nothing is
+ *   given, access for all achievements is determined.
+ * @param $account
+ *   The user to check for. Leave it to NULL to check for the global user.
+ * @return boolean
+ *   Whether access is allowed or not.
+ */
+function openbadging_access($op, $achievement = NULL, $account = NULL) {
+    global $user;
+
+    if (!$achievement || !in_array($op, array('view', 'edit', 'delete', 'create'), TRUE)) {
+        // If there was no achievement to check against, or the $op was not one of the
+        // supported ones, we return access denied.
+        return FALSE;
+    }
+
+    // If no user object is supplied, the access check is for the current user.
+    if (empty($account)) {
+        $account = $user;
+    }
+
+    if (user_access('administer openbadging types', $account)) {
+        return TRUE;
+    }
+    if (isset($achievement) && $type_name = $achievement->type) {
+        if (user_access("$op any $type_name achievement", $account)) {
+            return TRUE;
+        }
+        if (user_access("$op own $type_name achievement", $account)) {
+            return TRUE;
+        }
+        if (user_access("$op $type_name achievement", $account)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+/**
+ * Load a achievement.
+ */
+function openbadging_load($bid, $reset = FALSE) {
+    $achievements = openbadging_load_multiple(array($bid), array(), $reset);
+    return reset($achievements);
+}
+
+/**
+ * Load multiple achievements based on certain conditions.
+ */
+function openbadging_load_multiple($bids = array(), $conditions = array(), $reset = FALSE) {
+    return entity_load('openbadging', $bids, $conditions, $reset);
+}
+
+/**
+ * Save achievement.
+ */
+function openbadging_save($achievement) {
+    entity_save('openbadging', $achievement);
+}
+
+/**
+ * Delete single achievement.
+ */
+function openbadging_delete($achievement) {
+    entity_delete('openbadging', entity_id('openbadging', $achievement));
+}
+
+/**
+ * Delete multiple achievements.
+ */
+function openbadging_delete_multiple($achievement_ids) {
+    entity_delete_multiple('openbadging', $achievement_ids);
+}
+
+/**
+ * Access callback for achievement Type.
+ */
+function achievement_types_access($op, $entity = NULL) {
+    return user_access('administer openbadging types');
+}
+
+/**
+ * Load achievement Type.
+ */
+function achievement_types_load($achievement_type) {
+    return openbadging_types($achievement_type);
+}
+
+/**
+ * List of achievement Types.
+ */
+function openbadging_types($type_name = NULL) {
+    $types = entity_load_multiple_by_name('achievement_types', isset($type_name) ? array($type_name) : FALSE);
+    return isset($type_name) ? reset($types) : $types;
+}
+
+/**
+ * Save achievement type entity.
+ */
+function achievement_types_save($achievement_type) {
+    entity_save('achievement_types', $achievement_type);
+}
+
+/**
+ * Delete single case type.
+ */
+function achievement_types_delete($achievement_type) {
+    entity_delete('achievement_types', entity_id('achievement_types', $achievement_type));
+}
+
+/**
+ * Delete multiple case types.
+ */
+function achievement_types_delete_multiple($achievement_type_ids) {
+    entity_delete_multiple('achievement_types', $achievement_type_ids);
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function openbadging_views_api() {
+    return array(
+        'api' => 3,
+        'path' => drupal_get_path('module', 'openbadging'),
+    );
+}
+
+/**
+ * Implement hook_theme().
+ */
+function openbadging_theme() {
+    return array(
+        'openbadging' => array(
+            'render element' => 'elements',
+            'template' => 'openbadging',
+        ),
+        'openbadging_data' => array(
+            'variables' => array('openbadging_data', 'openbadging' => NULL),
+            'template' => 'achievement-ui-data',
+        ),
+    );
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ *
+ * Technique borrowed from Display Suite module.
+ * Add a custom preprocess hook that will work for all types of entities
+ */
+function openbadging_theme_registry_alter(&$theme_registry) {
+
+    $entity_info = entity_get_info();
+
+    foreach ($entity_info as $entity => $info) {
+        // User uses user_profile for theming.
+        if ($entity == 'openbadging') {
+            $entity = 'openbadging';
+        }
+
+        // Only add preprocess functions if entity exposes theme function.
+        if (isset($theme_registry[$entity])) {
+            $theme_registry[$entity]['preprocess functions'][] = 'openbadging_preprocess_openbadging';
+        }
+    }
+
+    // Support for File Entity.
+    if (isset($theme_registry['file_entity'])) {
+        $theme_registry['file_entity']['preprocess functions'][] = 'openbadging_preprocess_openbadging';
+    }
+
+    // Support for Entity API.
+    if (isset($theme_registry['entity'])) {
+        $theme_registry['entity']['preprocess functions'][] = 'openbadging_preprocess_openbadging';
+    }
+}
+
+/**
+ * Technique borrowed from Display Suite module.
+ * Add ical template suggestions to all types of entities.
+ */
+function openbadging_preprocess_openbadging(&$vars) {
+    if (isset($vars['elements']) && isset($vars['elements']['#entity_type']) && isset($vars['elements']['#bundle']) && isset($vars['view_mode'])) {
+        //$vars['theme_hook_suggestions'][] = $vars['elements']['#entity_type'];
+        $vars['theme_hook_suggestions'][] = $vars['elements']['#entity_type'] . '--' . $vars['elements']['#bundle'];
+    }
+}
+
+/**
+ * Decide on the type of marker to be displayed for a given achievement.
+ *
+ * @param $bid
+ *   Achievement ID whose history supplies the "last viewed" timestamp.
+ * @param $timestamp
+ *   Time which is compared against node's "last viewed" timestamp.
+ * @return
+ *   One of the MARK constants.
+ */
+function openbadging_mark($bid, $timestamp) {
+    global $user;
+    $cache = &drupal_static(__FUNCTION__, array());
+
+    if (!$user->uid) {
+        return MARK_READ;
+    }
+    if (!isset($cache[$bid])) {
+        $cache[$bid] = openbadging_last_viewed($bid);
+    }
+    if ($cache[$bid] == 0 && $timestamp > ACHIEVEMENT_ENTITY_NEW_LIMIT) {
+        return MARK_NEW;
+    } 
+    elseif ($timestamp > $cache[$bid] && $timestamp > ACHIEVEMENT_ENTITY_NEW_LIMIT) {
+        return MARK_UPDATED;
+    }
+    return MARK_READ;
+}
+
+/**
+ * Retrieves the timestamp at which the current user last viewed the
+ * specified achievement.
+ */
+function openbadging_last_viewed($bid) {
+    global $user;
+    $history = &drupal_static(__FUNCTION__, array());
+
+    if (!isset($history[$bid])) {
+        $history[$bid] = db_query("SELECT changed FROM {openbadging} WHERE uid = :uid AND bid = :bid", array(':uid' => $user->uid, ':bid' => $bid))->fetchObject();
+    }
+
+    return (isset($history[$bid]->changed) ? $history[$bid]->changed : 0);
+}
+
+/**
+ * Returns the achievement type name of the passed achievement or achievement type string.
+ * @return
+ *   The achievement type name.
+ */
+function openbadging_type_get_name($achievement) {
+    return $achievement->type;
+}
+
+/**
+ * Returns a list of available openbadging type names.
+ * @return
+ *   An array of openbadging type names, keyed by the type.
+ */
+function openbadging_type_get_names() {
+    $_openbadging_types = (object) array('names' => array());
+    $query = db_select('achievement_types', 'at')
+            ->fields('at');
+    foreach ($query->execute() as $type_object) {
+        $type_db = $type_object->type;
+        $_openbadging_types->names[$type_db] = $type_object->label;
+    }
+    return $_openbadging_types->names;
+}
+

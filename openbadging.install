@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the openbadging module.
+ */
+
+
+/**
+ * Implements hook_schema().
+ */
+function openbadging_schema() {
+    $schema = array();
+
+    $schema['openbadging'] = array(
+        'description' => 'The base table for achievements.',
+        'fields' => array(
+            'bid' => array(
+                'description' => 'The primary identifier for the achievement.',
+                'type' => 'serial',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'type' => array(
+                'description' => 'The type (bundle) of this achievement.',
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => TRUE,
+                'default' => '',
+            ),
+            'title' => array(
+                'description' => 'The title of the achievement.',
+                'type' => 'varchar',
+                'length' => 255,
+                'not null' => TRUE,
+                'default' => '',
+            ),
+            'uid' => array(
+                'description' => 'ID of Drupal user creator.',
+                'type' => 'int',
+                'not null' => TRUE,
+            ),
+            'created' => array(
+                'description' => 'The Unix timestamp when the achievement was created.',
+                'type' => 'int',
+                'not null' => TRUE,
+                'default' => 0,
+            ),
+            'changed' => array(
+                'description' => 'The Unix timestamp when the achievement was most recently saved.',
+                'type' => 'int',
+                'not null' => TRUE,
+                'default' => 0,
+            ),
+            'description' => array(
+                'description' => 'achievement description.',
+                'type' => 'text',
+            ),
+        ),
+        'primary key' => array('bid'),
+    );
+
+    $schema['achievement_types'] = array(
+        'description' => 'Stores information about all defined achievement types.',
+        'fields' => array(
+    'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique achievement type ID.',
+    ),
+    'type' => array(
+        'description' => 'The machine-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+    ),
+    'label' => array(
+        'description' => 'The human-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+    ),
+    'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+    ),
+        ) + entity_exportable_schema_fields(),
+        'primary key' => array('id'),
+        'unique keys' => array(
+            'type' => array('type'),
+        ),
+    );
+    return $schema;
+}

@@ -1,0 +1,45 @@
+name = Openbadging Badge Manager
+description = Allow Admin to manage badges and earners.
+core = 7.x
+package = openbadging
+php = 5.2.4
+dependencies[] = openbadging_badges
+dependencies[] = openbadging
+dependencies[] = ctools
+dependencies[] = views
+dependencies[] = views_bulk_operations
+dependencies[] = views_php
+dependencies[] = features
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:1
+features[views_view][] = badge_maneger
+features[views_view][] = earner_manager_default
+
+
+; Information added by drupal.org packaging script on 2013-01-08
+version = "7.x-1.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357654733"
+
+
+; Information added by drupal.org packaging script on 2013-01-10
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357827185"
+
+
+; Information added by drupal.org packaging script on 2013-01-30
+version = "7.x-2.x-dev"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1359552583"
+
+
+; Information added by drupal.org packaging script on 2013-03-04
+version = "7.x-3.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1362413418"
+

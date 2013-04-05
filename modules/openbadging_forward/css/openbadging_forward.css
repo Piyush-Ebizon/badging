@@ -1,0 +1,40 @@
+
+/* $Id achievement_forward.css */
+
+.achievement_forward_link {
+  position:relative;
+  bottom: 0.5em;
+  float:right;
+  margin-left: 1em;
+  margin-right: 3em;
+}
+
+.achievement_forward_syslink {
+  margin-right: 1em;
+}
+
+img.achievement-forward-icon {
+  vertical-align: bottom;
+}
+
+img.achievement-forward-icon-margin {
+  margin-right: 4px;
+  *margin-top: 0px;
+}
+
+label.printmail-label {
+  width: 175px;
+  float: left;
+}
+
+.page-achievement-forward #page #main #block-system-main .form-item{
+  float: left;
+  clear: both;  
+}
+.page-achievement-forward #page #main #block-system-main .form-actions{
+ float: left;
+  clear: both;
+}
+.page-achievement-forward #page #main #block-system-main label{
+  margin-top: 0px;
+}

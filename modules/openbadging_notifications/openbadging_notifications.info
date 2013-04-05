@@ -1,0 +1,37 @@
+name = Openbadging Notifications
+description = Send email to users when an achieve and acheivement.
+package = "openbadging"
+core = 7.x
+dependencies[] = achievements
+dependencies[] = openbadging
+dependencies[] = openbadging_badges
+dependencies[] = openbadging_issuer
+project = "achievements"
+
+; Information added by drupal.org packaging script on 2013-01-08
+version = "7.x-1.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357654733"
+
+
+; Information added by drupal.org packaging script on 2013-01-10
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357827185"
+
+
+; Information added by drupal.org packaging script on 2013-01-30
+version = "7.x-2.x-dev"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1359552583"
+
+
+; Information added by drupal.org packaging script on 2013-03-04
+version = "7.x-3.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1362413418"
+

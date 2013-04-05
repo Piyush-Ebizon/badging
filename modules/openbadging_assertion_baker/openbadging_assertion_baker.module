@@ -1,0 +1,287 @@
+<?php
+
+function openbadging_assertion_baker_menu(){
+$item = array();
+$item['baker'] = array(
+				'page callback' => 'url_assertion',
+				'access callback' => TRUE,
+        'type' => MENU_CALLBACK
+	);
+$item['assertions/%/%'] = array(
+    'page callback' => 'json_url_assertions',
+    'page arguments' => array(1, 2),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+return $item;
+}
+
+function url_assertion(){	
+$jsonurl = $_GET['assertion']; 
+$json = file_get_contents($jsonurl);
+if($json == ''){
+print '{"message":"Unable to retrieve assertion from the following url:'.$jsonurl.' ","name":"UnreachableError"}'; exit;
+}
+$json_output = json_decode($json, true);
+$assertion = $json_output;
+$json_url = $_GET['assertion'];
+
+/*retrive all fields from json*/
+if(isset($assertion['badge']['name']) && $assertion['badge']['name'] == 'No badge'){
+ print '{"message":"Unable to retrieve assertion from the following url:'.$jsonurl.' ","name":"UnreachableError"}'; exit;
+	}
+if(isset($assertion['recipient'])){
+	$recipient = $assertion['recipient'];
+	}
+if(isset($assertion['salt'])){
+	$salt = $assertion['salt'];
+	}
+if(isset($assertion['evidence'])){
+	$evidence = $assertion['evidence'];
+	}
+if(isset($assertion['badge']['version'])){
+	$badge_version = $assertion['badge']['version'];
+	}
+if(isset($assertion['badge']['name'])){
+	$badge_name = $assertion['badge']['name'];
+	}
+if(isset($assertion['badge']['description'])){
+	$badge_description = $assertion['badge']['description'];
+	}
+if(isset($assertion['badge']['criteria'])){
+	$badge_criteria = $assertion['badge']['criteria'];
+	}
+if(isset($assertion['badge']['image'])){
+	$badge_image = $assertion['badge']['image'];
+	}
+if(isset($assertion['badge']['issuer']['origin'])){
+	$issuer_origin = $assertion['badge']['issuer']['origin'];
+	}
+if(isset($assertion['badge']['issuer']['name'])){
+	$issuer_name = $assertion['badge']['issuer']['name'];
+	}
+if(isset($assertion['badge']['issuer']['org'])){
+	$issuer_org = $assertion['badge']['issuer']['org'];
+	}
+if(isset($assertion['badge']['issuer']['contact'])){
+	$issuer_contact = $assertion['badge']['issuer']['contact'];
+	}
+/*****************/
+
+/*check for all require field is present or not*/
+if(!isset($recipient)){
+	print '{"fields":{"badge.recipient":"missing required field: `badge.recipient`"}}'; exit;
+}	
+else if(!isset($salt)){
+	print '{"fields":{"badge.salt":"missing required field: `badge.salt`"}}'; exit;
+}	
+else if(!isset($badge_version)){
+	print '{"fields":{"badge.version":"missing required field: `badge.version`"}}'; exit;
+}	
+else if(!isset($badge_name)){
+	print '{"fields":{"badge.name":"missing required field: `badge.name`"}}'; exit;
+}	
+else if(!isset($badge_description)){
+	print '{"fields":{"badge.description":"missing required field: `badge.description`"}}'; exit;
+}	
+else if(!isset($badge_criteria)){
+	print '{"fields":{"badge.criteria":"missing required field: `badge.criteria`"}}'; exit;
+}	
+else if(!isset($badge_image)){
+	print '{"fields":{"badge.image":"missing required field: `badge.image`"}}'; exit;
+}	
+else if(!isset($issuer_name)){
+	print '{"fields":{"badge.issuer.name":"missing required field: `badge.issuer.name`"}}'; exit;
+}	
+else if(!isset($issuer_origin)){
+	print '{"fields":{"badge.issuer.origin":"missing required field: `badge.issuer.origin`"}}'; exit;
+}	
+/******************************/
+
+
+/*check json is valid or not.*/
+if(isset($recipient) && isset($salt) && isset($badge_version) && isset($badge_name) && isset($badge_description) 
+  && isset($badge_criteria) && isset($badge_image) && isset($issuer_origin) && isset($issuer_name)){
+	  
+		//image url validation
+		 $image_validation = valid_url($badge_image, $absolute = TRUE);
+     if($image_validation != 1){
+		 print '{"fields":{"badge.image":"invalid url for `badge.image`"}}'; exit;
+		 }
+		 //issuer origin url validation
+		 $origin_validation = valid_url($issuer_origin, $absolute = TRUE);
+		 if($origin_validation != 1){
+		 print '{"fields":{"badge.issuer.origin":"invalid origin for `badge.issuer.origin`"}}'; exit;
+		 }
+		 $img_info = get_headers($badge_image, 1);
+		 $img_size = $img_info["Content-Length"];
+     //image extension validation.
+		 $img_extension = $img_info["Content-Type"];
+		 if($img_extension != 'image/png'){
+		  print '{"status": "failure", "error": "parse", "reason": "could not parse (json|png): invalid image type"}'; exit;
+		 }
+		 //image size validation.
+		 if(($img_size/1024) > 256){
+		 print '{"status": "failure", "error": "size", "reason": "response too big. max size is 256kb"}'; exit;
+		 }
+}
+/**************************/
+
+
+/*if json is valid check user exist or not.*/
+//in case uid present with evidence url
+/*if(isset($evidence)){
+		$uid_evidence= explode('/UID=', $evidence);
+		if(isset($uid_evidence[1])){
+		$user = user_load($uid_evidence[1]);
+		$mail_evidence = 'sha256$' . hash('sha256', $user->mail . $salt);
+		if($recipient == $mail_evidence){
+		//add_metadata_png($badge_image);	
+		print '{"status": "success" , "user":"exist"}'; exit;
+		}
+	}
+}*/
+
+//in case uid not in evidence url
+$all_ids = db_select('users', 'u')
+    ->fields('u',array('mail','uid'))
+    ->execute()
+    ->fetchAll();           
+	  foreach($all_ids as $key=>$value){
+		  $mail = 'sha256$' . hash('sha256', $all_ids[$key]->mail . $salt);
+			if($recipient == $mail){
+				$uid = $all_ids[$key]->uid;
+				 add_metadata_png($badge_image);
+         //print '{"status": "success" , "user":"exist"}'; exit;
+				//user exists move to next validation.
+			}
+    }
+	if(!isset($uid)){    
+   print '{"status": "success" , "user":"not-exist"}'; exit;
+	}
+}//function end.
+/***********************/
+
+function add_metadata_png($image_path){
+   $path = 'http://beta.openbadges.org/baker?assertion='.$_GET['assertion'];
+   print(theme('image', array('path' => $path))); exit;
+}
+
+/**
+ * Return json assertions for achievements.
+ *
+ * @param string $achievement_url
+ *   A specific achievement title to check the unlock status of.
+ * @param int $uid
+ *   The user this request applies against (defaults to current user).
+ *
+ * @return array
+ *   One of the following, based on the passed parameters:
+ *   - If the $uid has not unlocked $achievement_id, return empty badge.
+ *   - If $achievement_url is unlocked, return the formatted badge assertion.
+ */
+function json_url_assertions($achievement_url, $uid) {
+  $user = user_load($uid);
+  $name = entity_load('openbadging', array($achievement_url));
+  $achievement_name = $name[$achievement_url]->title;
+  //$achievement_name = urldecode($achievement_url);
+  $unlocks = achievements_unlocked_already(NULL, $uid);
+  $achievements = achievements_load(NULL, FALSE);
+  foreach ($achievements as $key => $achievement) {
+    if (isset($unlocks[$key]) && (trim($achievement['title'])) == (trim($achievement_name))) {
+      global $base_root;
+      $salt = 'mybadge!';
+      $hash = 'sha256$' . hash('sha256', $user->mail . $salt);
+      if (isset($achievement['images']['badge'])) {
+        // Use the larger badge image if supplied.
+        $image = $achievement['images']['badge'];
+      }
+      elseif (isset($achievement['images']['unlocked'])) {
+        // Otherwise use the unlock image.
+        $image = $achievement['images']['unlocked']; 
+        $image = str_replace(array('75_75'), array('110_110'), $image);   
+      }
+      else {
+        $image = variable_get('achievements_image_unlocked', '');
+        if (substr($image,-4,4) != '.png') {
+          watchdog('amobb', t('No valid image was found'), array(), WATCHDOG_INFO);
+          break;
+        }
+      }
+      $evidence_badge = get_issuer_info_assertion($key ,'evidence');
+      $assertion = array(
+          'recipient' => $hash,
+          'salt' => 'mybadge!',
+          //'evidence' => $evidence_badge.'/uid='.$user->uid,
+          'badge' => array(
+          'version' => '0.5.0',
+          'name' => $achievement['title'],
+          'description' => $achievement['description'],
+          'criteria' => url('achievement/' . $key, array('absolute' => TRUE)),
+          'image' => url($image, array('absolute' => TRUE)),
+          'issuer' => array(          
+          'origin' => get_issuer_info_assertion($key ,'origin'),
+          'name' => get_issuer_info_assertion($key ,'name'),
+          'org' => get_issuer_info_assertion($key ,'org'),         
+          'contact' => get_issuer_info_assertion($key ,'contact'),
+          ),
+        ),
+      );
+      drupal_json_output($assertion);
+      return;
+    }
+  }
+  // If the user doesn't have the badge or the badge doesn't exist, return
+  $assertion = array(
+    'badge' => array(
+    'name' => 'No badge',
+    ),
+  );
+ drupal_json_output($assertion);
+}
+
+/**
+ * @param $badge_id id of badge that is to be send to mozilla backpack.
+ * @return issuer information of corresponding badge id.
+ */
+function get_issuer_info_assertion($badge_id,$case)
+{
+	
+	$tid_array = entity_load('openbadging', $ids = array($badge_id));
+	
+	$tid = $tid_array[$badge_id]->field_badge_entity_program['und']['0']['tid'];
+	$badge_evidence = $tid_array[$badge_id]->field_badge_entity_evidence['und']['0']['url'];
+	
+	$issuer_id = achievement_badges_badge_issuer_information_mozilla($tid);
+	
+	$issuer_array = entity_load('openbadging', $ids = array($issuer_id));
+
+	$issuer_origin = isset($issuer_array[$issuer_id]->field_issuer_origin['und']['0']['url']) ? $issuer_array[$issuer_id]->field_issuer_origin['und']['0']['url'] : '';
+	$issuer_org = isset($issuer_array[$issuer_id]->field_issuer_org['und']['0']['value']) ? $issuer_array[$issuer_id]->field_issuer_org['und']['0']['value'] : '';
+	$issuer_contact = isset($issuer_array[$issuer_id]->field_issuer_contact['und']['0']['value']) ? $issuer_array[$issuer_id]->field_issuer_contact['und']['0']['value'] : '';
+	$issuer_name = isset($issuer_array[$issuer_id]->title) ? $issuer_array[$issuer_id]->title : '';
+	
+	
+	switch ($case) {
+    case 'name':
+        return $issuer_name;
+        break;
+    
+    case 'origin':
+        return $issuer_origin;
+        break;
+    
+    case 'org':
+        return $issuer_org;
+        break;  
+    
+    case 'contact':
+        return $issuer_contact;
+        break;
+        
+    case 'evidence':
+        return $badge_evidence;
+        break;    
+   
+   }
+}

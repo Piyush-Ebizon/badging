@@ -1,0 +1,89 @@
+
+/* $Id achievement_badge_manager.css */
+
+#views-form-badge-maneger-page-1 tr td, tr th,
+#views-form-earner-manager-default-page tr td, tr th{
+    background:white;
+} 
+#views-form-badge-maneger-page-1 table,
+#views-form-earner-manager-default-page table{
+    float:left;
+    font-size: 12px;
+    width: 100%;
+}
+#views-exposed-form-badge-maneger-page-1 .views-exposed-form,
+#views-exposed-form-earner-manager-default-page .views-exposed-form{
+    background-color:#CCCCCC;
+}
+#views-exposed-form-badge-maneger-page-1 .views-exposed-form .views-exposed-widgets .views-exposed-widget,
+#views-exposed-form-earner-manager-default-page .views-exposed-form .views-exposed-widgets .views-exposed-widget{
+    float: left;
+    padding: 10px;
+} 
+#views-exposed-form-badge-maneger-page-1 .views-exposed-form .views-exposed-widgets .views-submit-button .form-type-textfield,
+#views-exposed-form-earner-manager-default-page .views-exposed-form .views-exposed-widgets .views-submit-button .form-type-textfield{
+    display:none;
+}
+#views-exposed-form-badge-maneger-page-1 .views-exposed-form .views-exposed-widgets #edit-submit-badge-maneger,
+#views-exposed-form-badge-maneger-page-1 .views-exposed-form .views-exposed-widgets #edit-reset,
+#views-exposed-form-earner-manager-default-page .views-exposed-form .views-exposed-widgets #edit-submit-earner-manager-default,
+#views-exposed-form-earner-manager-default-page .views-exposed-form .views-exposed-widget #edit-reset{
+    margin-top:25px;
+}
+#views-exposed-form-earner-manager-default-page .views-exposed-widget .views-widget .form-item input{
+    width:150px;
+}
+#autocomplete-form-badges .form-submit,
+#autocomplete-form-earners .form-submit{
+    margin-left:383px;
+}
+#views-form-badge-maneger-page-1 #edit-select .fieldset-wrapper,
+#views-form-earner-manager-default-page #edit-select .fieldset-wrapper{
+    margin-top:25px;
+}
+#block-achievement-badge-manager-badge-manager .content{
+    font-size: 14px;
+    text-align: left;
+}
+#block-achievement-badge-manager-badge-manager h2{
+    text-align:left;
+    color:#3B3B3B;
+    margin-top: 10px;
+}
+#page #featured {
+    background-color:white;
+    border-bottom: none;
+    font-weight: 0px;
+    line-height: none;
+    margin: 0px;
+    padding: 0px;
+    text-shadow: none;
+}
+#block-achievement-badge-manager-badge-manager-content-earner .content b,
+#block-achievement-badge-manager-badge-manager-content-badges .content b{
+    margin-left:50px;
+}
+#block-achievement-badge-manager-badge-manager-upper-earner .content i,
+#block-achievement-badge-manager-badge-manager-upper-badge .content i{
+    margin-left:50px;
+    font-size: 22px;
+    line-height: 45px;
+}
+#views-exposed-form-badge-maneger-page-1 .views-widget .form-type-textfield #edit-title{
+    margin-left:0px;
+    width:200px;
+}
+#autocomplete-form-badges .form-type-textfield,
+#autocomplete-form-earners .form-type-textfield{
+    position: relative;
+}
+#autocomplete-form-badges .form-type-textfield #autocomplete,
+#autocomplete-form-earners .form-type-textfield #autocomplete{
+    left:145px !important;
+}
+#views-exposed-form-earner-manager-default-page .views-exposed-form #autocomplete{
+    left:20px !important;
+}
+.page-badge-manager #breadcrumb {
+    display: none;
+}

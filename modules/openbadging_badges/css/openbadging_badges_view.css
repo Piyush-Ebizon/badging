@@ -1,0 +1,85 @@
+/* $Id achievement_badges_view.css */
+
+#block-views-earner-slider-block{
+    margin-top: 20px;
+}
+#block-views-earner-slider-block .content{
+    border:1px solid #999999;
+    padding: 10px;
+}
+#block-views-earner-slider-block .content{
+    border:1px solid #999999;
+    padding: 10px;
+}
+.view-earned-badges table tr{
+    background-color:#ffffff;
+    padding:0 10px;
+}
+.achievement-badges-awarded-users{
+    float: left;
+    clear: both;
+}
+
+.issuer-origin-view,.issuer-name-view,.issuer-contact-view,.badge-version-view,.badge-name-view,.badge-description-view{
+    float:left;
+    width:100%;
+}
+.issuer-details label{
+    float: left;
+} 
+#block-views-exp-badges-all-page .form-item-search-api-views-fulltext input{
+    width: 150px;
+}
+
+
+.badge-issuer-teaser-right-view {
+    float:right;
+    width:30%;
+    text-align: center;
+}
+.badge-issuer-teaser-left-view{
+    float:left; 	
+    width:70%;
+}
+.badge-issuer-teaser-right-view img{
+    margin-top: 10px;
+}
+.badge-issuer-teaser-right-view .earn-view-image img{
+    margin-top:30px;
+}
+.badge-details label{
+    float: left;
+}
+.issuer-details,.badge-details{
+    float:left;
+    width:75%;
+}
+.page-achievement #achievement-entity-form .container-inline-date .form-item{
+    * margin-top: -20px;
+    * margin-left: 70px;
+    * width: 100%;
+}
+.page-achievement #achievement-entity-form #edit-field-badge-entity-program .description{
+    clear: both;
+}
+.view-earned-badges table tr td {
+    width: 92px;
+    float: left;
+}
+.page-achievement #page #main .content .field-type-entityreference .label_selected{
+    margin-right: 0px;
+}
+.page-achievement #page #main .content .field-type-text-long .form-textarea-wrapper{
+    width: 33%;
+}
+.page-achievement #page #main .form-item .description{
+    margin-left:142px;
+}
+.page-achievement #page #main .field-name-field-badge-entity-expiration .description, 
+.page-achievement #page #main .field-name-field-badge-entity-issued-date .description {
+    margin-left:2px;
+}
+.user_own_image img{
+    width:200px;
+    height:200px;
+}

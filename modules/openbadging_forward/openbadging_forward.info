@@ -1,0 +1,43 @@
+name = Openbadging Forward 
+description = Forward this page module
+core = 7.x
+dependencies[] = openbadging_badges
+dependencies[] = openbadging_issuer
+dependencies[] = openbadging
+dependencies[] = mimemail
+files[] = openbadging_forward.module
+files[] = openbadging_forward.tpl.php
+configure = admin/config/user-interface/achievement_forward
+version = "7.x-1.4"
+core = "7.x"
+project = "openbadging_forward"
+package = "openbadging"
+
+
+; Information added by drupal.org packaging script on 2013-01-08
+version = "7.x-1.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357654733"
+
+
+; Information added by drupal.org packaging script on 2013-01-10
+version = "7.x-1.0-alpha1"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1357827185"
+
+
+; Information added by drupal.org packaging script on 2013-01-30
+version = "7.x-2.x-dev"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1359552583"
+
+
+; Information added by drupal.org packaging script on 2013-03-04
+version = "7.x-3.0"
+core = "7.x"
+project = "OpenBadging"
+datestamp = "1362413418"
+
